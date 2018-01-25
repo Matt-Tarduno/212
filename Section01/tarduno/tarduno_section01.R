@@ -44,7 +44,6 @@ car_data <- read_csv(paste0(dir_section1, "auto.csv"))
 #can also just use the fact that we are in section 1 folder: 
 read_csv("auto.csv")
 
-
 # Looking at data -------------------------------------------------
 
 #checking out names, what the data look like: 
@@ -116,9 +115,81 @@ plot(
   xlab = "Fuel economy (MPG)",
   ylab = "Price")
 
+# Indexing ---------------------------------------------------------------------
+# Create a vector
 
-# Finish indexing, linear algebra puzzles ---------------------
+x <- c(3, 5, 7, 9)
+# Grab the second element of x
+x[2]
+# Grab the second and third elements of x
+x[c(2, 3)]
+# Grab the second and third elements of x
+x[2:3]
+# See what 2:3 does
+2:3
+# Indexing the car subset: We use [row, column]. 
+car_sub[1, ] #gets the first row
+car_sub[, 1] #gets the first column
 
+# Index using the name of a column as its index
+car_sub[, "price"]
+
+# Linear algebra puzzles -----------------------------------------------
+
+# Puzzle one ------------------------------------------------------------
+
+#built-in functions
+i<-diag(5)
+i%*%i #show the i is indempotent
+t(i) #show matrix is symetric 
+
+# A function to invert matricies. 
+
+invert.matrix <- function(mat) {
+M<-c() #a blank vector
+for (column in 1:dim(mat)[2]){
+  for (row in 1:dim(mat)[1]){
+    new_element<-mat[row,column]
+    M<-c(M, new_element)
+  }
+}
+M<-matrix(M, nrow = dim(mat)[2], ncol = dim(mat)[1], byrow='True')
+return(M)
+}
+
+# Puzzle 2 ---------------------------------------------------------------
+
+#Should be an idempotent matrix: 
+#[1/2, 1/4]
+#[1, 1/2]
+
+#Simple test, using built-in functions: 
+A<-matrix(c(.5, .25, 1, .5), nrow = 2, ncol = 2, byrow = 'True')
+A%*%A #note the % for matrix multiplication 
+
+# Puzzle 3 ---------------------------------------------------------------
+
+#Generate two random variables, x and e, of dimension n = 1000 such that x, e ∼ N(0, 1). 
+
+generate.rv <- function(dimension) {
+  v<-c() #a blank vector
+  for (i in 1:dimension){
+    v<-c(v, rnorm(1, mean = 0, sd = 1))
+  }
+return(v)  
+}
+
+#gernerate random variables 
+e<-generate.rv(1000)
+x<-generate.rv(1000)
+
+#make y variable
+y<- x+ e 
+
+#run regression 
+lm(y ~ x)
+
+# ------------------------------------------------------------------------
 
 
 
