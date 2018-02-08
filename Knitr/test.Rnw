@@ -1,0 +1,49 @@
+\documentclass[english, 11pt]{article}
+\usepackage[utf8]{inputenc}
+
+\begin{document}
+
+\noindent Clever text.
+
+<<>>=
+# Add two and two
+2 + 2
+# Set the seed
+set.seed(12345)
+# Generate two vectors of 100 N(0,1) random numbers
+x <- rnorm(100)
+y <- rnorm(100)
+# Create a plot of x and y
+plot(x, y)
+@
+
+<<eval = F>>=
+# Add two and two (well, we won't because this is in eval-land)
+2 + 2
+# Set the seed
+set.seed(12345)
+# Generate two vectors of 100 N(0,1) random numbers
+x <- rnorm(100)
+y <- rnorm(100)
+# Create a plot of x and y
+plot(x, y)
+@
+
+<<myLittleChunk, fig.cap = "Plotting x and y", eval = TRUE, echo = FALSE>>=
+# Set the seed
+set.seed(12345)
+# Generate two vectors of 100 N(0,1) random numbers
+x <- rnorm(100)
+y <- rnorm(100)
+# Create a plot of x and y
+plot(x,y)
+@
+Notice that Figure~\ref{fig:myLittleChunk} displays the relationship between $x$ and $y$.
+
+
+Throughout history, many people have wondered about the means of $x$ and $y$.
+Today we can provide some answers. The mean of $x$ is approximately
+\Sexpr{round(mean(x), 3)}. The mean of $y$ is approximately \Sexpr{round(mean(y), 3)}.
+
+
+\end{document}

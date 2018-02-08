@@ -1,0 +1,543 @@
+\documentclass[english, 11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage[normalem]{ulem}
+\begin{document}
+
+
+\title{Problem Set 1}
+\author{Sébastien Annan-Phan, Alejandro Favela, Matthew Tadruno }
+
+\maketitle
+
+
+<<setup, cache=FALSE, echo=F>>=
+library(knitr)
+# global chunk options
+opts_chunk$set(cache=FALSE, autodep=TRUE)
+@
+
+<<Setup, echo = F>>=
+
+# Packages 
+library(pacman)
+library(knitr)
+# p_load examples
+p_load(dplyr, haven, readr, xtable)
+p_load(ggplot2,extrafont,Matrix)
+options(kableExtra.latex.load_package = FALSE)
+library(kableExtra)
+library(xtable)
+
+
+# Directories  
+if (Sys.getenv("LOGNAME")=="AlexFavela") {
+  dir_data <- "~/Google Drive/ARE 212 Psets/Pset 1/Data/"
+}
+
+if (Sys.getenv("LOGNAME")=="matthewtarduno") {
+  dir_data <- "/Users/matthewtarduno/Desktop/212/pset1/"
+  # If this doesn't work, set your gdrive path
+}
+
+if (Sys.getenv("LOGNAME")=="") {
+  dir_data <- "C:/Users/sphan/Google Drive/ARE 212 Psets/Pset 1/Data/"
+}
+
+@
+
+\newpage
+\noindent \section*{Questions 1 and 2} Reading and cleaning the data.
+<<Q.1 and Q.2, results='hide', size='small'>>=
+
+wb_data <-read_csv(paste0(dir_data, "ps1_raw.csv"), col_types=cols())
+
+#Assigning column names 
+colnames(wb_data) <- 
+  c("year", "year_code", "country", 
+    "country_code", "CO2", "GDP", "POP")
+
+#dropping year code 
+wb_data <- select(wb_data, -year_code)
+
+#drop ".." observations
+vars<-names(wb_data)[4:6]
+for (var in vars) {
+  wb_data <- wb_data[!wb_data[var] == "..", ]
+}
+
+wb_data <- na.omit(wb_data)
+wb_data[4:6] <-lapply(wb_data[4:6], as.numeric)
+
+@
+
+\noindent \section*{Question 3} Calculate a table of showing the sample mean, standard deviation, minimum and maximum for each series.
+
+<<Q.3 summary statistics, echo=F, results='hide'>>=
+
+l<-summarize(wb_data, 
+             mean(CO2), sd(CO2), min(CO2), max(CO2), 
+             mean(GDP), sd(GDP), min(GDP), max(GDP), 
+             mean(POP), sd(POP), min(POP), max(POP))
+
+table<-data.frame(matrix(unlist(l), nrow=4, byrow=F))
+rownames(table) <- c("Mean", "S.D.", "Min", "Max")
+
+@
+
+<<Q.3 output, echo=F>>=
+kable(table, format = "latex", booktabs=T, caption = "Summary Statistics", escape = FALSE, col.names = c("CO\\textsubscript{2} (kt)", "GDP (2010 USD)", "Population")) %>%
+  kable_styling(latex_options = "hold_position")
+@
+
+<<graph setup, echo=F>>=
+
+#setting up theme
+mytheme<-theme(legend.text = element_text(size=14), legend.key.size = unit(3.5,"line"), legend.key = element_blank(),
+               panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+               panel.background = element_blank(), axis.line = element_line(colour = "black"),
+               plot.title = element_text(size = 20, hjust=.5), axis.text=element_text(size=14),
+               axis.title=element_text(size=14))
+
+@
+
+\newpage
+\bigskip
+\noindent \section*{Question 4} Create a histogram for CO\textsubscript{2} and GDP (15 buckets).
+\vspace{2mm}
+<< Q.4 Histograms, echo=F>>=
+
+CO2_histogram<-ggplot(wb_data, aes(x=CO2)) + geom_histogram(bins=15, color="darkblue", fill="deepskyblue3") + ggtitle(expression(CO[2]~Histogram))+ labs(
+    x= expression(CO[2]~Emissions~"[kt]"),
+    y= "Count") + mytheme
+
+
+GDP_histogram<-ggplot(wb_data, aes(x=GDP)) + geom_histogram(bins=15, color="darkblue", fill="deepskyblue3") + ggtitle("GDP Histogram")+labs(
+    x= "GDP",
+    y= "Count",
+    caption = "Note: GDP is in 2010 U.S. Dollars."
+  ) + mytheme
+@
+<<Q.4 output, echo=F, out.width='7cm', out.height='7cm', fig.show='hold'>>=
+CO2_histogram #Q.4
+GDP_histogram #Q.4
+@
+
+
+\noindent \section*{Question 5} Plot CO\textsubscript{2} against GDP. 
+\vspace{2mm}
+<<Q.5 Scatterplot: CO2 vs. GDP, echo=F>>=
+
+library(extrafont)
+loadfonts(quiet = T)
+CO2_GDP_scatterplot<-ggplot(wb_data, aes(x=GDP, y=CO2)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3) +
+  ggtitle(expression(CO[2]~Emissions~vs.~GDP)) +
+  labs(
+    x= "GDP",
+    y= expression(CO[2]~Emissions~"[kt]"),
+    caption = "Note: GDP is in 2010 U.S. Dollars."
+  ) + mytheme
+@
+<<Q.5 graph output, echo=F, out.width='8cm', out.height='8cm', fig.align="center">>=
+CO2_GDP_scatterplot #Q.5
+@
+
+\noindent \section*{Question 6} Create a new variable “Per capita CO\textsubscript{2} emissions” called \textit{CO2pc}.
+<<Q.6 CO2 per capita>>=
+wb_data$CO2pc<-wb_data$CO2/wb_data$POP
+@
+
+\noindent \section*{Question 7} Create a new variable “Per capita GDP” called \textit{GDPpc}.
+<<Q.7 GDP per capita>>=
+wb_data$GDPpc<-wb_data$GDP/wb_data$POP
+@
+  
+\noindent \section*{Question 8} Plot \textit{CO2pc} against \textit{GDPpc}.
+\vspace{5mm}
+<<Q.8 Scatterplot: CO2pc vs. GDPpc, echo=F>>=
+
+CO2_GDP_pc<-ggplot(wb_data, aes(x=GDPpc, y=CO2pc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3) +
+  ggtitle(expression(Per~Capita~CO[2]~Emissions~vs.~Per~Capita~GDP)) +
+  labs(
+    x= "Per Capita GDP",
+    y= expression(Per~Capita~CO[2]~Emissions~"[kt]"),
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme
+@
+<<Q.8 output, echo=F, out.width='8cm', out.height='8cm', fig.align="center">>=
+CO2_GDP_pc
+@
+
+\newpage
+\noindent \section*{Question 9}  Create demeaned variables of \textit{CO2pc} and \textit{GDPpc} called \textit{CO2pcdev} and \textit{GDPpcdev} by subtracting the sample mean from each observation.
+<<Q.9 demean variables>>=
+
+wb_data$CO2pcdev<-wb_data$CO2pc-mean(wb_data$CO2pc)
+wb_data$GDPpcdev<-wb_data$GDPpc-mean(wb_data$GDPpc)
+@
+
+\bigskip
+\noindent \section*{Question 10} Plot \textit{CO2pcdev} against \textit{GDPpcdev}.
+\vspace{5mm}
+<<Q.10 Scatterplot: CO2pcdev vs. GDPpcdev, echo=F>>=
+
+demean_scatter<-ggplot(wb_data, aes(x=GDPpcdev, y=CO2pcdev)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  ggtitle(expression(Per~Capita~CO[2]~Emissions~vs.~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Per Capita GDP (Demeaned)",
+    y= expression(Per~Capita~CO[2]~Emissions~"[kt] (Demeaned)"),
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme + theme(plot.title = element_text(size=16))
+
+@
+<<Q.10 output, echo=F, out.width='8cm', out.height='8cm', fig.align="center">>=
+demean_scatter
+@
+
+\noindent \section*{Question 11} Create the variables \textit{CO2pcln} and \textit{GDPpcln} by taking natural logs of \textit{CO2pc} and \textit{GDPpc}.
+\vspace{5mm}
+<<Q.11 Log variables>>=
+wb_data$CO2pcln<-log(wb_data$CO2pc)
+wb_data$GDPpcln<-log(wb_data$GDPpc)
+@
+
+\bigskip
+\noindent \section*{Question 12} Plot \textit{CO2pcln} and \textit{GDPpcln}.
+\vspace{5mm}
+<<Q.12 Scatterplot: CO2pcln vs. GDPpcln, echo=F>>= 
+
+log_demean_scatter<-ggplot(wb_data, aes(x=GDPpcln, y=CO2pcln)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  ggtitle(expression(Log~Per~Capita~CO[2]~vs.~Log~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Log of Per Capita GDP (Demeaned)",
+    y= expression(Log~of~Per~Capita~CO[2]~Emissions~"[kt] (Demeaned)"),
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme + theme(plot.title = element_text(size=16))
+
+@
+<<Q.12 output, echo=F, out.width='8cm', out.height='8cm', fig.align="center">>=
+log_demean_scatter
+@
+
+\noindent \section*{Question 13} Export your data as a comma delimited ascii file.
+<<Q.13 Export data>>=
+write.csv(wb_data, file = "wb_formatted.csv") 
+#default ascii
+@
+
+\newpage
+\noindent \section*{Custom OLS Function} 
+<<OLS function, size="footnotesize">>=
+
+b_ols <- function(data, y, X, intercept=NULL) {
+  # This function takes as inputs:
+  # 1. A data frame, 'data'
+  # 2. A dependent variable, y 
+  # 3. A list of X variables c("x1", "x2", ...)
+  # 4. An optional 4th argument, T, to include an intercept 
+  require(dplyr)
+  
+  # Select y variable data from 'data'
+  y_data <- subset(data, select=c(y))
+  # Select X variable data from 'data'
+  X_data <- select_(data, .dots = X)
+  
+  if(is.null(intercept)) {
+    # Convert y_data to matrices
+    y_data <- as.matrix(y_data)
+    # Convert X_data to matrices
+    X_data <- as.matrix(X_data)
+    # Calculate beta hat
+    beta_hat <- solve(t(X_data)%*%X_data)%*%t(X_data)%*%y_data
+  }
+  
+  else{
+    # Convert y_data to matrices
+    y_data <- as.matrix(y_data)
+    # Add a column of ones to X_data 
+    X_data <- mutate_(X_data, "ones" = 1)
+    # Move the intercept column to the front (this is cool)
+    X_data <- select_(X_data, "ones", .dots = X)
+    # Convert X_data to matrices
+    X_data <- as.matrix(X_data)
+    # Calculate beta hat
+    beta_hat <- solve(t(X_data)%*%X_data)%*%t(X_data)%*%y_data
+    # Change the name of 'ones' to 'intercept'
+    rownames(beta_hat) <- c("intercept", X)
+  }
+  
+  y_hat<-X_data%*%beta_hat #Predicted values
+  residual<-y_data - y_hat
+  
+  SST<-sum((y_data)^2) #Total sum of squares 
+  SSM<-sum((y_hat)^2) #Regression sum of squares
+  SSR<-sum((y_data-y_hat)^2) #Error sum of squares
+  
+  SSM_demean <- sum((y_hat - mean(y_data))^2)
+  SST_demean <- sum((y_data - mean(y_data))^2)
+  
+  n <- dim(X_data)[1]
+  k <- dim(X_data)[2]
+  dof <- n - k 
+  R_uc <- 1 - (SSR/SST)
+  R <- 1- SSR/SST_demean
+  R_adj <- 1 - (1 - R) * ((n-1)/(n-k))
+  AIC <- log(SSR/n) + (2*k)/n 
+  SIC <- log(SSR/n) + (k/n) * log(n) 
+  s2 <- SSR/(n-k)
+  
+  assign("y_hat", y_hat, .GlobalEnv)
+  assign("residual", residual, .GlobalEnv)
+  assign("beta_hat", beta_hat, .GlobalEnv)
+  assign("R", R, .GlobalEnv)
+  assign("R_uc", R_uc, .GlobalEnv)
+  assign("R_adj", R_adj, .GlobalEnv)
+  assign("AIC", R_uc, .GlobalEnv)
+  assign("SIC", SIC, .GlobalEnv)
+  assign("s2", s2, .GlobalEnv)
+  assign("n", n, .GlobalEnv)
+  assign("dof", dof, .GlobalEnv)
+  
+  
+  fit<-data.frame(n, dof, round(R, 4), round(R_uc, 4), 
+       round(R_adj, 4), round(AIC, 4), round(SIC, 4), round(s2, 4))
+  assign("fit", fit, .GlobalEnv)
+  
+
+  return(c(beta_hat, R, R_uc, R_adj, AIC, SIC, s2))
+}
+@
+
+\newpage
+\noindent \section*{Question 14} Regress \textit{CO2pc} on \textit{GDPpc} without an intercept...
+
+<<Q.14 Regress CO2pc on GDPpc without an intercept>>=
+
+#Regress CO2pc on GDPpc without an intercept
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"))[1]
+
+# Regress CO2pc*1000 on GDPpc without an intercept
+wb_data$CO2pc<-wb_data$CO2pc*1000
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"))[1]
+
+#Regress CO2pc*1000 on GDPpc/1000 without an intercept
+wb_data$GDPpc<-wb_data$GDPpc/1000
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"))[1]
+@
+
+\noindent Multiplying the dependent variable by 1000 increases the estimate of beta by a factor of 1000;
+dividing the independent variable by 1000 also increases the estimate of beta by a factor of 1000. Together, these give an estimate 1,000,000 times larger than the original regression. While both the sum of squares and the sum of squared residuals change, they do so proportionally, so the R\textsuperscript{2} is unchanged after rescaling. 
+
+\newpage
+\noindent \section*{Question 15}   
+<<Q.15 R-Squared, echo=FALSE>>=
+  
+#summary(lm(wb_data$CO2pc ~ wb_data$GDPpc +0))$adj.r.squared
+#b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"))
+
+#Plot of predicted value vs co2pc
+
+scatter_predict_co2<-ggplot(wb_data, aes(x=y_hat, y=CO2pc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  labs(
+    x= "Predicted values",
+    y= "Per Capita CO2",
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme
+
+#Plot of residuals vs gdppc
+
+scatter_residuals_gdppc<-ggplot(wb_data, aes(y=residual, x=GDPpc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  #ggtitle(expression(Log~of~Per~Capita~CO[2]~Emissions~vs.~Log~of~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Per Capita GDP",
+    y= "residuals",
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme + geom_hline(yintercept=0, linetype = "longdash", col = "red")
+
+@
+
+<<Q.15 output, echo=T, size='small'>>=
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"))[1]
+@
+
+<<Q.15 table, echo=F, fig.pos="H">>=
+#After regressing, the data frame "fit" contains measures of fit. 
+kable(fit, format = "latex", booktabs=T, caption = "Measures of Fit", escape = FALSE, col.names = c("$n$", "D.O.F.", "$R^2$","$R^2_{uc}$", "$\\bar{R^2}$", "AIC", "SIC", "$s^2$" )) %>%
+  kable_styling(latex_options = "hold_position")
+@
+
+
+\noindent On the graph there are outliers, which means that for certain observations the predicted values are far from the realized values. The fact that there are more outliers on the right-hand side of the graph (higher values of \textit{GDPpc}) suggests that the homoskedasticity assumption does not hold. Additionally, there may be a non-linear relationship between per capita CO\textsubscript{2} emissions and GDP per capita. 
+\\
+\smallskip
+\noindent The countries with high residuals include Trinidad and Tobago, and Qatar; low-residual countries include Liechtenstein and Switzerland.
+
+
+\noindent \section*{Question 16}
+<<Q16: Regression with intercept, echo=FALSE, results='hide' >>=
+  
+summary(lm(wb_data$CO2pc ~ wb_data$GDPpc))$r.squared
+summary(lm(wb_data$CO2pc ~ wb_data$GDPpc))$adj.r.squared
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"), T)
+
+#Plot of predicted value vs co2pc
+
+scatter_predict_co2<-ggplot(wb_data, aes(x=y_hat, y=CO2pc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  #ggtitle(expression(Log~of~Per~Capita~CO[2]~Emissions~vs.~Log~of~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Predicted values",
+    y= "Per Capita CO2",
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme
+
+#scatter_predict_co2
+
+#Plot of residuals vs gdppc 
+
+scatter_residuals_gdppc<-ggplot(wb_data, aes(y=residual, x=GDPpc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  #ggtitle(expression(Log~of~Per~Capita~CO[2]~Emissions~vs.~Log~of~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Per Capita GDP",
+    y= "residuals",
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme + geom_hline(yintercept=0, linetype = "longdash", col = "red")
+
+#scatter_residuals_gdppc
+@
+
+<<Q.16 output, echo=T, size='small'>>=
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"), T)[1:2]
+#coefficient on GDPpc and intercept, respectively. 
+@
+
+<<Q.16 table, echo=F>>=
+#After regressing, the data frame "fit" contains measures of fit. 
+kable(fit, format = "latex", booktabs=T, caption = "Measures of Fit", escape = FALSE, col.names = c("$n$", "D.O.F.", "$R^2$","$R^2_{uc}$", "$\\bar{R^2}$", "AIC", "SIC", "$s^2$" )) %>%
+  kable_styling(latex_options = "hold_position")
+@
+
+\noindent Graphing the residuals shows that including intercept improves fit; it reduces the residuals of the outliers at the tails (low and high \textit{GDPpc}). This is reflected in a higher R\textsuperscript{2} value.
+
+
+\noindent \section*{Question 17} 
+<< Q.17 : Polynomial order 2, echo=FALSE, results='hide' >>=
+
+wb_data$GDPpc2 <- wb_data$GDPpc ** 2
+
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc", "GDPpc2"), T)
+lm(wb_data$CO2pc~wb_data$GDPpc + wb_data$GDPpc2) #test
+
+#Plot of predicted value vs co2pc
+
+scatter_predict_co2<-ggplot(wb_data, aes(x=y_hat, y=CO2pc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  #ggtitle(expression(Log~of~Per~Capita~CO[2]~Emissions~vs.~Log~of~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Predicted values",
+    y= "Per Capita CO2",
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme
+
+#scatter_predict_co2
+
+#Plot of residuals vs gdppc
+
+scatter_residuals_gdppc2<-ggplot(wb_data, aes(y=residual, x=GDPpc)) +
+  geom_point(size=2, shape=19, color="darkblue", alpha=0.3)+
+  #ggtitle(expression(Log~of~Per~Capita~CO[2]~Emissions~vs.~Log~of~Per~Capita~GDP~"(Demeaned)")) +
+  labs(
+    x= "Per Capita GDP",
+    y= "residuals",
+    caption = "Note: Per Capita GDP is in 2010 U.S. Dollars."
+  ) + mytheme + geom_hline(yintercept=0, linetype = "longdash", col = "red")
+
+#scatter_residuals_gdppc2
+@
+  
+<<Q.17 output, echo=T, size='small'>>=
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc", "GDPpc2"), T)[1:3]
+#coefficients on GDPpc and GDPpc2dev, and intercept, respectively. 
+@
+
+<<Q.17 table, echo=F>>=
+#After regressing, the data frame "fit" contains measures of fit. 
+kable(fit, format = "latex", booktabs=T, caption = "Measures of Fit", escape = FALSE, col.names = c("$n$", "D.O.F.", "$R^2$","$R^2_{uc}$", "$\\bar{R^2}$", "AIC", "SIC", "$s^2$" )) %>%
+  kable_styling(latex_options = "hold_position")
+@
+
+
+\noindent Overall, the average observation has residuals that are much closer to zero. In particular, the fit has improved on the left tail of the distribution beacuse of the non-linear relationship between CO\textsubscript{2} and GDP. On the right tail, however, we have an outlier for which we overcorrected in the previous model. The Environmental Kuznet's curve provides economic rationale for including \textit{GDPpc2} in our model: as countries start to develop they increase pollution until a certain threshold, after which pollution begins to decline as concerns of environmental quality outweigh marginal gains from pollution.
+
+\noindent \section*{Question 18} 
+
+<<Q.18, size="footnotesize">>=
+wb_data$CO2pcdev<-wb_data$CO2pc-mean(wb_data$CO2pc)
+wb_data$GDPpcdev<-wb_data$GDPpc-mean(wb_data$GDPpc)
+wb_data$GDPpc2dev<-wb_data$GDPpc2-mean(wb_data$GDPpc2)
+b_ols(data = wb_data, y="CO2pcdev", X=c("GDPpcdev", "GDPpc2dev"))[1:2]
+#coefficients on GDPpc and GDPpc2, respectively. 
+@
+
+\noindent Using FWT, we can produce the same estimates for the coefficients on \textit{GDPpc} and \textit{GDPpc2} as in question 17. We do not estimate the intercept with this method. This illustrates the fact that running a regression without an intercept using demeaned variables is equivalent to running one with an intercept and unaltered variables.
+
+
+
+\noindent \section*{Question 19}
+
+<<Q.19: FWT continued, size="footnotesize">>=
+
+#no intercept, generate residuals
+b_ols(data = wb_data, y="CO2pc", X=c("GDPpc"))  
+wb_data$residual1<-residual #save residuals
+wb_data$i<-1
+b_ols(data = wb_data, y="i", X=c("GDPpc")) #no intercept 
+wb_data$residual2<-residual
+b_ols(data = wb_data, y="GDPpc2", X=c("GDPpc")) #no intercept 
+wb_data$residual3<-residual
+
+#no intercept 
+b_ols(data = wb_data, y="residual1", X=c("residual2", "residual3"))[1:2] 
+#intercept and coefficient on GDPpcdev2, respectively. 
+@
+
+\noindent Here we replicate the estimate of the intercept and the coefficient \textit{GDPpc2} from question 17, but ignore \textit{GDPpc}. 
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -145,7 +145,7 @@ t(i) #show matrix is symetric
 
 # A function to invert matricies. 
 
-invert.matrix <- function(mat) {
+transpose.matrix <- function(mat) {
 M<-c() #a blank vector
 for (column in 1:dim(mat)[2]){
   for (row in 1:dim(mat)[1]){
