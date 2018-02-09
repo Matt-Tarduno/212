@@ -1,9 +1,9 @@
-# tarduno section 3 --------------------------------------
+# tarduno section 3 ----
 
 setwd("/Users/matthewtarduno/Desktop/212/Section03")
 
 
-# Review (more on types, vectors) ------------------------------------------
+# Review (more on types, vectors) ----
 # Does as.numeric() create integers or doubles? (doubles!)
 is.double(as.numeric(1))
 
@@ -23,7 +23,7 @@ vec2 <- vec^2
 vec2
 ## [1]  1  4  9 16 25
 
-# misc (knitr, NA types) -------------------------------------------
+# misc (knitr, NA types) ----
 
 # this saves things in cache until they are changed -- helps speed up the knitting! 
 library(knitr)
@@ -104,7 +104,7 @@ rm(list = ls())
 
 
 
-# functions ---------------------------------------
+# functions ----
 
 # Basic syntax 
 
@@ -142,101 +142,46 @@ cars <- read_dta(file = paste0(dir_sec3, "auto.dta"))
 # The function require() is the standard way to have a function make sure a package is loaded. 
 # select vs. select_ might be a thing of the past 
 
-b_ols <- function(data, y, X, intercept=NULL) {
+b_ols <- function(data, y, X) {
   # Require the 'dplyr' package
   require(dplyr)
   
-  # Select y variable data from 'data'
-  y_data <- subset(data, select=c(y))
-
-  # Select X variable data from 'data'
-  X_data <- select_(data, .dots = X)
-  
-  
-  if(is.null(intercept)) {
+  # Create the y matrix
+  y_data <- data %>%
+    # Select y variable data from 'data'
+    select_(.dots = y) %>%
     # Convert y_data to matrices
-    y_data <- as.matrix(y_data)
-    
-    # Convert X_data to matrices
-    X_data <- as.matrix(X_data)
-    
-    # Calculate beta hat
-    beta_hat <- solve(t(X_data) %*% X_data) %*% t(X_data) %*% y_data
-    
-    y_hat<-X_data%*%beta_hat #Predicted values
-    
-    SST<-sum((y_data)^2) #Total sum of squares 
-    SST_demean <- sum((y_data - mean(y_hat))^2)
-    SSM<-sum((y_hat)^2) #Regression sum of squares
-    SSR<-sum((y_data-y_hat)^2) #Error sum of squares
-    n <- dim(X_data)[1]
-    k <- dim(X_data)[2]
-    dof <- n - k 
-    R_uc <- 1 - (SSR/SST)
-    R <- 1-(SSR/SST_demean) 
-    R_adj <- 1 - (1 - R) * ((n-1)/(n-k))
-    AIC <- log(SSR/n) + (2*k)/n 
-    SIC <- log(SSR/n) + (k/n) * log(n) 
-    
-    
-    # Return beta_hat
-    return(c(beta_hat, R_squared, AIC, SIC, R, R_adj))
-  }
+    as.matrix()
   
-  else{
-    # Convert y_data to matrices
-    y_data <- as.matrix(y_data)
-    
-    # Add a column of ones to X_data (could also just make new df var manually)
-    X_data <- mutate_(X_data, "ones" = 1)
-    
-    # Move the intercept column to the front (this is cool)
-    X_data <- select_(X_data, "ones", .dots = X)
-    
+  # Create the X matrix
+  X_data <- data %>%
+    # Select X variable data from 'data'
+    select_(.dots = X) %>%
+    # Add a column of ones to X_data
+    mutate_("ones" = 1) %>%
+    # Move the intercept column to the front
+    select_("ones", .dots = X) %>%
     # Convert X_data to matrices
-    X_data <- as.matrix(X_data)
-    
-    # Calculate beta hat
-    beta_hat <- solve(t(X_data) %*% X_data) %*% t(X_data) %*% y_data
-    
-    # Change the name of 'ones' to 'intercept'
-    rownames(beta_hat) <- c("intercept", X)
-    
-    y_hat<-X_data%*%beta_hat #Predicted values
-    
-    SST<-sum((y_data)^2) #Total sum of squares 
-    SST_demean <- sum((y_data - mean(y_hat))^2)
-    SSM<-sum((y_hat)^2) #Regression sum of squares
-    SSR<-sum((y_data-y_hat)^2) #Error sum of squares
-    n <- dim(X_data)[1]
-    k <- dim(X_data)[2]
-    dof <- n - k 
-    R_uc <- 1 - (SSR/SST)
-    R <- 1-(SSR/SST_demean) 
-    R_adj <- 1 - (1 - R) * ((n-1)/(n-k))
-    AIC <- log(SSR/n) + (2*k)/n 
-    SIC <- log(SSR/n) + (k/n) * log(n) 
+    as.matrix()
   
-    
-    # Return beta_hat
-    return(c(beta_hat, R, R_uc, R_adj,  AIC, SIC, R, R_adj))
-  }
+  # Calculate beta hat
+  beta_hat <- solve(t(X_data) %*% X_data) %*% t(X_data) %*% y_data
+  # Change the name of 'ones' to 'intercept'
+  rownames(beta_hat) <- c("intercept", X)
+  # Return beta_hat
+  return(beta_hat)
 }
 
-# One little regression 
+# Testing our OLS function ----
 b_ols(cars, "mpg", c("price"))
 lm(cars$mpg ~ cars$price)
 
 #Another one
 b_ols(data = cars, y = "price", X = c("mpg", "weight"))
 
-# try to figure out how to put the one's stuff in an if statement. (w/o intercept matricies won't work)
-# maybe try just making a new object that is everything but the row of ones from the matrix??
+
+
 # Ceci n'est pas une pipe ----
-
-# This will allow us to un-nest the nest
-
-# take preceding object, feed it to next function
 
 
 # Select the variables
@@ -244,11 +189,11 @@ tmp_data <- select(cars, price, mpg, weight)
 # Summarize the selected variables
 summary(tmp_data)
 
-# PIPE
-cars %>% select(price, mpg, weight) %>% summary()
+# Pipe 
+cars %>% select(price, mpg, weight) %>% summary() #think of this as f(g(x)), or "then"
 
 
-#comparing to canned regression ----
+#comparing to canned regression 
 p_load(lfe)
 
 # Run the regression with 'felm'
@@ -257,4 +202,131 @@ canned_ols <- felm(formula = price ~ mpg + weight, data = cars)
 canned_ols %>% summary()
 #also contains a bunch of stuff on top of regression estimates 
 
-b_ols(data = cars, y = "price", X = c("mpg", "weight"))
+b_ols(data = cars, y = "price", X = c("mpg", "weight")) 
+
+#for loops ----
+
+# basic:  
+
+for (i in 1:5) {
+  print(paste("Hi", i))
+}
+
+# lapply (automated for loops)
+
+# lapply() returns a list of the results generated by FUN for each of the elements of X.
+
+lapply(X = 0:4, FUN = sqrt)
+
+# using with our OLS function 
+
+target_vars <- c("price", "headroom", "trunk", "length", "turn", "displacement", "gear_ratio", "foreign")
+
+# The 'lapply' call (here we wrap out ols function because of hwo the arguments are defined and passed)
+# the "i" is everything in X, so for every thing in X, we run a regression with X{i} as the y variable. 
+results_list <- lapply(
+  X = target_vars,
+  FUN = function(i) b_ols(data = cars, y = i, X = c("mpg", "weight"))
+)
+# The results
+results_list
+
+
+# Cleaning up the results list (into data frame)
+results_df <- lapply(X = results_list, FUN = data.frame) %>% bind_cols()
+# We lose the row names in the process; add them back
+rownames(results_df) <- c("intercept", "mpg", "weight")
+# Check out results_df
+results_df
+
+
+# simulation ---- 
+
+# A function to calculate bias
+data_baker <- function(sample_n, true_beta) {
+  # First generate x from N(0,1)
+  x <- rnorm(sample_n)
+  # Now the error from N(0,1)
+  e <- rnorm(sample_n)
+  # Now combine true_beta, x, and e to get y
+  y <- true_beta[1] + true_beta[2] * x + e
+  # Define the data matrix of independent vars.
+  X <- cbind(1, x)
+  # Force y to be a matrix
+  y <- matrix(y, ncol = 1)
+  # Calculate the OLS estimates
+  b_ols <- solve(t(X) %*% X) %*% t(X) %*% y
+  # Convert b_ols to vector
+  b_ols <- b_ols %>% as.vector()
+  # Calculate bias, force to 2x1 data.frame()
+  the_bias <- (true_beta - b_ols) %>%
+    matrix(ncol = 2) %>% data.frame()
+  # Set names
+  names(the_bias) <- c("bias_intercept", "bias_x")
+  # Return the bias
+  return(the_bias)
+}
+
+# Set seed
+set.seed(12345)
+# Run once
+data_baker(sample_n = 100, true_beta = c(1, 3))
+
+# stopped part way through simulation 2.08.2018
+
+
+# A function to run the simulation
+bias_simulator <- function(n_sims, sample_n, true_beta) {
+  
+  # A function to calculate bias
+  data_baker <- function(sample_n, true_beta) {
+    # First generate x from N(0,1)
+    x <- rnorm(sample_n)
+    # Now the error from N(0,1)
+    e <- rnorm(sample_n)
+    # Now combine true_beta, x, and e to get y
+    y <- true_beta[1] + true_beta[2] * x + e
+    # Define the data matrix of independent vars.
+    X <- cbind(1, x)
+    # Force y to be a matrix
+    y <- matrix(y, ncol = 1)
+    # Calculate the OLS estimates
+    b_ols <- solve(t(X) %*% X) %*% t(X) %*% y
+    # Convert b_ols to vector
+    b_ols <- b_ols %>% as.vector()
+    # Calculate bias, force to 2x1 data.frame()
+    the_bias <- (true_beta - b_ols) %>%
+      matrix(ncol = 2) %>% data.frame()
+    # Set names
+    names(the_bias) <- c("bias_intercept", "bias_x")
+    # Return the bias
+    return(the_bias)
+  }
+  
+  # Run data_baker() n_sims times with given parameters
+  sims_dt <- lapply(
+    X = 1:n_sims,
+    FUN = function(i) data_baker(sample_n, true_beta)) %>%
+    # Bind the rows together to output a nice data.frame
+    bind_rows()
+  
+  # Return sim_dt
+  return(sims_dt)
+}
+
+
+# Set seed
+set.seed(12345)
+# Run it
+sim_dt <- bias_simulator(n_sims = 1e4, sample_n = 100, true_beta = c(1,3))
+# Check the results with a histogram
+hist(sim_dt[,2],
+     breaks = 30,
+     main = "Is OLS unbiased?",
+     xlab = "Bias")
+# Emphasize the zero line
+abline(v = 0, col = "blue", lwd = 3)
+
+
+
+
