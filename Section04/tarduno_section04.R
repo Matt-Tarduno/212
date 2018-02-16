@@ -337,6 +337,56 @@ b_ols(the_data, y_var = "y", X_vars = "x2", intercept = T)
 # double yikes! 
 
 
+# what happened? 
+#   " First, the regression that matches the true data-generating process 
+#   produces coefficient estimates that are pretty much spot on 
+#   (we have a fairly large sample). " 
+#
+#   Second, omitting one of the xx variables really 
+#   messes up the coefficient estimate on the other variable.
+
+
 # bad controls ------
 
-Stopped here 2.09.2018 
+# what happens when we add variables that aren't part of the DGP? 
+
+#let's drop x2 from the DPG: 
+
+# Create a var-covar matrix
+v_cov <- matrix(data = c(1, 1 - 1e-6, 1 - 1e-6, 1), nrow = 2)
+# Create the means vector
+means <- c(5, 5)
+# Define our sample size
+n <- 1e5
+# Set the seed
+set.seed(12345)
+# Generate x1 and x2
+X <- mvrnorm(n = n, mu = means, Sigma = v_cov, empirical = T)
+# Create a tibble for our data, add generate error from N(0,1)
+the_data <- tbl_df(X) %>% mutate(e = rnorm(n))
+# Set the names
+names(the_data) <- c("x1", "x2", "e")
+# The data-generating process
+the_data <- the_data %>% mutate(y = 1 + 2 * x1 + e)
+
+
+#regressions:  
+
+# Regression 1: y on int and x1 (DGP)
+b_ols(the_data, y_var = "y", X_vars = "x1", intercept = T)
+#yay! 
+
+# Regression 2: y on int, x1, and x2
+b_ols(the_data, y_var = "y", X_vars = c("x1", "x2"), intercept = T)
+# yikes 
+
+# Regression 3: y on int and x2
+b_ols(the_data, y_var = "y", X_vars = "x2", intercept = T)
+
+# what happened: 
+#   "because x1x1 and x2x2 are so strongly correlated,
+#   when we “control for” x2x2, we remove meaningful 
+#   variation—misattributing some of x1x1’s variation to x2"
+
+
+
